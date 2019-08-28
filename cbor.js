@@ -158,10 +158,41 @@ function encode(value) {
         } else if (value instanceof Uint8Array) {
           writeTypeAndLength(2, value.length);
           writeUint8Array(value);
+        } else if (value instanceof Map) {  // Map keyed by bytestring
+          writeTypeAndLength(5, value.size);
+          var items = []
+          value.forEach(function(value, key) {
+            items.push([key, value]);
+          });
+          items.sort(function(a, b) {
+              if (a[0].length != b[0].length)
+                  return a[0].length - b[0].length;
+              // Compare base64 representation
+              let a64 = btoa(a[0]);
+              let b64 = btoa(b[0]);
+              if (a64 < b64)
+                  return -1;
+              if (a64 > b64)
+                  return 1;
+              return 0;
+          });
+          for (var item of items) {
+            encodeItem(item[0]);
+            encodeItem(item[1]);
+          }
         } else {
           var keys = Object.keys(value);
           length = keys.length;
           writeTypeAndLength(5, length);
+          keys.sort(function(a, b) {
+              if (a.length != b.length)
+                  return a.length - b.length;
+              if (a < b)
+                  return -1;
+              if (a > b)
+                  return 1;
+              return 0;
+          });
           for (i = 0; i < length; ++i) {
             var key = keys[i];
             encodeItem(key);
